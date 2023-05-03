@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+<head>
+    <title>
+Groovy Govee Account Takeover | TightropeMonkey
+</title>
+
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta name="generator" content="Hugo 0.92.2" />
+
+
+<link rel="canonical" href="https://tightropemonkey.github.io/posts/govee-part-1/" >
+<link href="/sass/main.min.4e3efe637d21e3743f006dbceaa8d8f10952bb4f4d19989c58c5afb0fc120a52.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+    <div class="flexWrapper">
+        <header class="headerWrapper">
+    <div class="header">
+        <div>
+            <a href="https://tightropemonkey.github.io/">
+                <span class="terminal">me@tightropemonkey.github.io ~ $</span>
+            </a>
+        </div>
+        <nav class="headerLinks">
+            <ul>
+                
+                <li>
+                    <a href="https://tightropemonkey.github.io/posts" title="" >
+                        ~/posts</a>
+                </li>
+                
+            </ul>
+        </nav>
+    </div>
+</header>
+
+        <div class="content">
+            <main class="main">
+                
+<div class="postWrapper">
+    <h1>Groovy Govee Account Takeover</h1>
+    <div>
+        <p>Recently, I got my hands on the Govee DreamView P1 Light Bars (model H6054).</p>
+<p><img src="images/govee_h6054.jpeg" alt="Govee Flow Pro (H6054)"></p>
+<p>According to Govee, their product uses the smart camera to intelligently recognize and capture the colors on your TV screen and automatically applies them to your backlights.</p>
+<p>This device reminds me, in terms of functionality, of the Philips Ambilight, only that the product comes in different variations and can be installed on TVs and monitors.</p>
+<p>Before telling you more about this easy-peasy yet impactful account takeover of all Govee Home connected devices, let me introduce you to Govee first.</p>
+<p><em>Govee is a global leading smart home brand pursuing personalized and fun life experiences through continuous innovations since 2017, especially in ambient lighting, home appliance products, and smart IoT systems. We design it. We produce it. We make life smarter.</em></p>
+<p>The most important facts about Govee:</p>
+<ul>
+<li>&gt;12 million registered Govee Home app users</li>
+<li>&gt;$200 million dollar annual sales in 2020</li>
+<li>Distribution in 60+ countries</li>
+<li>Headquarter based in Hong Kong</li>
+</ul>
+<p>As you may already have noticed Govee is a global player in RGBIC market with a good amount of registered users.</p>
+<p>The H6054 itself has a lot of interesting attack vectors like:</p>
+<ul>
+<li>Global Android and iOS app for all Govee products (Govee Home)</li>
+<li>Bluetooth communication</li>
+<li>Wifi communication</li>
+<li>Hardware
+<ul>
+<li>Controlbox</li>
+<li>Camera</li>
+<li>Lightbars</li>
+</ul>
+</li>
+</ul>
+<p>For those of you who are now wondering, this is how the camera looks in action:</p>
+<p><img src="images/govee_camera.png" alt="Govee Flow Pro (H6054)"></p>
+<p>For me this is the perfect research target, as my main focus has always been on web applications and corresponding source code reviews. This project allows me to expand my knowledge in mobile application and hardware topics.</p>
+<h2 id="the-account-takeover">The Account Takeover</h2>
+<p>During account registration a 4-digit confirmation code is sent to the email address to verify the ownership. This already looked interesting, so I made a quick note and continued with the setup. Later, after establishing the setup I started playing a bit around to understand how the Govee architecture works and where to dive deeper into.</p>
+<p>Using the mobile application there are three main types of communication:</p>
+<ol>
+<li>Communication with Govee&rsquo;s infrastructure (HTTPS)</li>
+<li>Communication with Govee devices via WiFi (AWS IoT, MQTTS)</li>
+<li>Communication with Govee devices via Bluetooth</li>
+</ol>
+<p>Being most familiar with the web aspects, I decided to first take a look at API calls via HTTPS and complete this task before moving on to new parts where I needed to challenge myself and learn something new.</p>
+<p>The HTTPS API is mostly used for central settings of the Govee Home user profile, but also for other functionality like providing the MQTTS certificate and firmware updates.</p>
+<p>At some point I decided to reset my Govee Home password and immediately saw the already familiar 4-digit code in my postbox.</p>
+<p><img src="images/govee_pwreset_email.png" alt="Govee Password Reset E-Mail"></p>
+<p>Now I got curious and asked myself how do they protect this against brute force attacks? Let&rsquo;s find out!</p>
+<p>Quickly spinning up BurpSuite Intruder and defining a code range from 0000-9999. In less than a minute I had my answer: They don&rsquo;t!</p>
+<p><img src="images/govee_pwreset_bruteforce.png" alt="Govee Bruteforce Password Reset Code"></p>
+<p>Everything needed for an account takeover was a valid email address. This is how fast a small research project on a specific product turned into a global account takeover endangering all users and their connected devices. But how to we get valid email addresses?</p>
+<h3 id="account-enumeration-to-the-rescue">Account Enumeration To The Rescue</h3>
+<p>If you read a couple of penetration test reports, chances are you have seen a finding called something like &ldquo;User Enumeration&rdquo;. Typically, these findings have a low risk and are often neglected. Based on different responses of the application like <em>&ldquo;Email has been sent.&quot;</em> or <em>&ldquo;This user is unknown.&quot;</em> an attacker can enumerate if an account exists or not. Happily for us, Govee has a similar behavior. For every login or password reset request, Govee will let us know if the entered email address is not valid.</p>
+<p><img src="images/govee_user_enum.png" alt="Govee User Enumeration"></p>
+<p>One way of finding valid email addresses would be to just randomly fire tons of email addresses against the API endpoint, however there is a more convenient way.</p>
+<p>May I present? The Govee community!</p>
+<p><img src="images/govee_community.png" alt="Govee Community"></p>
+<p>All an attacker has do to is to scrape the nicknames from all posts and mutate the names with a list of typical email providers. Even better is the fact that employees of Govee are also registered in the forum, which may allow taking over accounts with higher privileges.</p>
+<p>This attack scenario remains theoretical, as this would cross the line and goes beyond our proof of concept.</p>
+<h2 id="the-impact">The Impact</h2>
+<p>As mentioned before this exploit was as straight forward as possible. Brute forcing a 4-digit code does not need a lot of technical knowledge.</p>
+<p>Which made me think - has nobody tried this before?</p>
+<p>We are talking here about 12 million(!) registered app users, where each user could have multiple devices.</p>
+<p>Lots of these devices have sensitive functions like cameras or smart lights that allow to play arbitrary sounds.</p>
+<p>Obviously, I wanted to know how easy an attacker with an account in his hands is able to spy on a victim using the camera.</p>
+<p>After a short while I discovered the calibration function, which as the name suggests if for the initial setup and allows to calibrate the camera for the mounted monitor.</p>
+<p>Using the calibration function triggers the following request:</p>
+<pre tabindex="0"><code>GET /appco/v1/calibration/point?device=&lt;censored&gt;&amp;sku=H6054 HTTP/2
+Host: app2.govee.com
+Cookie: [..]
+Authorization: Bearer ey&lt;censored&gt;
+[..]
+</code></pre><p>The application answers with:</p>
+<pre tabindex="0"><code>HTTP/2 200 OK
+[..]
+
+{
+  &quot;message&quot;: &quot;&quot;,
+  &quot;status&quot;: 200,
+  &quot;data&quot;: {
+    &quot;device&quot;: &quot;&lt;censored&gt;&quot;,
+    &quot;sku&quot;: &quot;H6054&quot;,
+    &quot;imgUrl&quot;: &quot;https://d1f2504ijhdyjw.cloudfront.net/snapshot-img/&lt;censored&gt;-snap.jpg&quot;,
+    &quot;points&quot;: [
+      { &quot;pointX&quot;: 160, &quot;pointY&quot;: 1066 },
+      { &quot;pointX&quot;: 80, &quot;pointY&quot;: 595 },
+      [..]
+    ]
+  }
+}
+</code></pre><p>The &ldquo;imgUrl&rdquo; has exactly what I was looking for and allows us to get a live snapshot from the camera at any time. Here is an example image made while testing the calibration endpoint:</p>
+<p><img src="images/govee_camera_snap.jpg" alt="Govee Community"></p>
+<p>The file is reachable unauthenticated on CloudFront and has been lying there around for two months now.</p>
+<p>I made multiple recommendations on how the password reset mechanism can be implemented more secure. Govee decided not to change the code itself, but to invalidate the reset code after the first wrong attempt.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>I didn&rsquo;t think my little project would be fruitful so quickly and that much more digging would be required to find something critical. Let&rsquo;s see what I will find in the upcoming weeks. Also, as this is my first post on this blog: Hello world!</p>
+<h2 id="timeline">Timeline</h2>
+<ul>
+<li>15.03.2023: Initial contact to Govee support</li>
+<li>16.03.2023: Govee requesting vulnerability details</li>
+<li>16.03.2023: Asking Govee for secure communication method</li>
+<li>17.03.2023: Govee provided email address for secure communication</li>
+<li>17.03.2023: Initial contact with security team, requesting PGP key</li>
+<li>23.03.2023: Contacting security team again, after no answer</li>
+<li>30.03.2023: Contacting Govee support again, since security team is not answering</li>
+<li>31.03.2023: Supports answers to check with the security team</li>
+<li>03.04.2023: Security teams answers and provides PGP key</li>
+<li>05.04.2023: Sending detailed vulnerability description to security team</li>
+<li>06.04.2023: Govee confirms that they could decrypt the PGP email</li>
+<li>11.04.2023: Asking Govee if they were able to verify the vulnerability</li>
+<li>13.04.2023: Govee has problems to decrypt the email and open the attachment</li>
+<li>13.04.2023: Trying to help Govee with PGP setup</li>
+<li>13.04.2023: Govee asks to send information unencrypted</li>
+<li>13.04.2023: Sending information unencrypted</li>
+<li>13.04.2023: Govee thanks me for the information and wants to expedit the process</li>
+<li>14.04.2023: Govee states they have fixed the vulnerability</li>
+<li>16.04.2023: Retest and telling Govee that the vulnerability is still available on other endpoints</li>
+<li>18.04.2023: Govee confirms to analyze and fix all endpoints with the same behavior</li>
+<li>20.04.2023: Govee states they have fixed all additional endpoints</li>
+</ul>
+<h2 id="references">References</h2>
+<ul>
+<li><a href="https://eu.govee.com/products/govee-dreamview-p1-light-bars">Govee DreamView P1 Light Bars</a></li>
+<li><a href="https://us.govee.com/pages/about-us">Govee About us</a></li>
+<li><a href="https://eu.govee.com/">Govee Europe - Section: Who is Govee</a></li>
+</ul>
+
+    </div>
+</div>
+
+            </main>
+        </div>
+
+
+        <footer class="footer">
+    © 2023 TightropeMonkey, Built with
+    <a href="https://gohugo.io" class="footerLink">Hugo</a> and
+    <a href="https://github.com/LordMathis/hugo-theme-nightfall" class="footerLink">Nightfall</a> theme
+</footer>
+    </div>
+
+</body>
+
+</html>
