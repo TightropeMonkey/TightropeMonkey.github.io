@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+<head>
+    <title>
+Fun with Govee - Part II | TightropeMonkey
+</title>
+
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta name="generator" content="Hugo 0.92.2" />
+
+
+<link rel="canonical" href="https://tightropemonkey.dev/posts/govee-part-2/" >
+<link href="/sass/main.min.4e3efe637d21e3743f006dbceaa8d8f10952bb4f4d19989c58c5afb0fc120a52.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+    <div class="flexWrapper">
+        <header class="headerWrapper">
+    <div class="header">
+        <div>
+            <a href="https://tightropemonkey.dev/">
+                <span class="terminal">me@tightropemonkey.dev ~ $</span>
+            </a>
+        </div>
+        <nav class="headerLinks">
+            <ul>
+                
+                <li>
+                    <a href="https://tightropemonkey.dev/posts" title="" >
+                        ~/posts</a>
+                </li>
+                
+            </ul>
+        </nav>
+    </div>
+</header>
+
+        <div class="content">
+            <main class="main">
+                
+<div class="postWrapper">
+    <h1>Fun with Govee - Part II</h1>
+    <div>
+        <p>It has been a while since I wrote my first blog post about the Govee global account takeover. As some might have guessed from the URL of the first post, a second part was planned, and after a longer summer break - here it is!</p>
+<p>If you don&rsquo;t know what this post is about, please read the introduction of my first blog post <a href="/posts/govee-part-1/">Groovy Govee Account Takeover</a></p>
+<p>This part mainly focuses on two topics that I wanted to learn more about on my little IoT adventure:</p>
+<ul>
+<li>Hardware Analysis (Govee H6054)</li>
+<li>Mobile Application Analysis (Govee Home)</li>
+</ul>
+<p>Let&rsquo;s dive right in!</p>
+<h2 id="hardware-analysis">Hardware Analysis</h2>
+<p>The Govee H6054 has two interesting circuit boards, the control unit (<a href="images/govee_hardware_controlbox.jpg">detailed view</a>) and the camera unit (<a href="images/govee_hardware_camera.jpg">detailed view</a>). After disassembling all the plastic I was greeted with lots of different connectors.</p>
+<p><img src="images/govee-hardware-overview.jpg" alt="Govee Hardware Overview"></p>
+<p>Luckily, a few of them were labeled, often with <code>GND,RX,TX</code>. Since this sounded a lot like UART, I unpacked my freshly bought BusPirate and started testing.</p>
+<p><img src="images/buspirate.png" alt="Bus Pirate"></p>
+<p>Once the baud rate was right, a mixture of text and binary blobs was printed on the screen. I assumed that I was watching the internal communication between the two boards because the UART interfaces on both boards printed exactly the same data.</p>
+<p>After testing a few UART interfaces, I noticed a line of six test pads connected to the main chip on the camera&rsquo;s board. Hoping for a JTAG interface, I tried to probe the pads, but without a PCBite kit I was not able to get a solid physical connection. Luckily, a good friend of mine has far better soldering skills than I do and helped me out.</p>
+<p><img src="images/soldering.jpg" alt="Soldering"></p>
+<p>With the connectors soldered, one problem is solved, but another occoured.
+The test pads are not labeled. Therefore, we needed to find out which signal connects to which pad. It was time to play around with the JTAGulator to probe the test pads. Since the JTAGulator was not able to identify any pads I decided to do some research on the chip. The exact data sheet was not available, but a similar chip suggested an SWD (serial wire debug) interface.</p>
+<p>So I ran the JTAGulator again this time to find a possible SWD interface.</p>
+<p><img src="images/jtagulator.jpg" alt="JTAGulator"></p>
+<p>Long story short, it did not work! I still didn&rsquo;t know if there was a JTAG or SWD around, but at least I couldn&rsquo;t find it. Maybe there was some kind of reset-magic implemented or a broken solder joint prevented success on this issue (the soldered connector was delivered &gt;700km and crossed a border).</p>
+<p>Circling back to my previous attempt and testing for UART finally brought the breakthrough!</p>
+<p><img src="images/govee-cam-uart.png" alt="UART Test"></p>
+<p>Restarting the device while listening to the right UART interface showed me tons of output, including my clear text WiFi credentials. Take care if you plan to get rid of your device or if other people have access to it!</p>
+<p><img src="images/wificreds.png" alt="WIFI Creds"></p>
+<p>But it got even better. After finishing the boot process, I was greeted with a mysterious password prompt. A very long and exhausting manual brute-force attack with three attempts revealed that the password to <em>GoveeShell</em> heaven was simply: <strong>govee</strong></p>
+<p><img src="images/govee-shell.png" alt="Govee Shell"></p>
+<p>Enjoy your shell and play around :-)</p>
+<p><img src="images/govee-shell-commands.png" alt="Govee Shell Commands"></p>
+<h2 id="android-application-analysis">Android Application Analysis</h2>
+<p>The Govee Home Android application analysis consisted mainly of two parts:</p>
+<ol>
+<li>Dynamic hooking with objection and frida</li>
+<li>Decompiling the source code to manually find interesting things</li>
+</ol>
+<p>The first approach was where I spent most of my time with. Playing around with hooks and multiple functions, especially with everything that involved AWS IoT communication via MQTTS, was lots of fun. Unfortunately, the hooking was quite buggy and did not always work as expected. But from what I saw the MQTTS setup looked quite solid. The Govee MQTTS endpoint (aqm3wd1qlc3dy-ats.iot.us-east-1.amazonaws.com) is described in an IoT research paper from the Indiana University Bloomington (URL in references). They also reported their findings to Govee, so maybe that&rsquo;s why I didn&rsquo;t find any low-hanging fruit.</p>
+<p>After spending a good amount of time on it, I decided to move forward and statically analyze the Govee Home app. The application is huge (over 100MB) and has specific source code for almost every Govee device or device family.</p>
+<p>Digging around on interesting source code that involves my own Govee H6054 was fun, but after a while I decided to go for some good old grep magic and was not disappointed.</p>
+<p><img src="images/x-api-key.png" alt="x-api-key"></p>
+<p><img src="images/google-api-key.png" alt="google_api_key"></p>
+<p><img src="images/flurry-api-key.png" alt="x_flurry_api_key"></p>
+<p><img src="images/govee-api-key-sourcecode.png" alt="govee_api_key"></p>
+<p>The <code>Govee-Api-Key</code> immediately caught my attention as I had been reading about the Govee developer API previously. Basically, anybody with a Govee Home account can request their personal API token to control owned devices via HTTP. But why was one of those API keys in the source code? Does it still work? Who is the owner of the key?</p>
+<p>One Burp request later I got my answer:</p>
+<p><img src="images/govee-api-key-h70b1.png" alt="govee_api_key"></p>
+<p>The API key still worked and had two connected devices (H6057 &amp; H70B1). Both devices were turned on and controllable via the interface. Even more interesting was the fact that the H70B1 device wasn&rsquo;t even on the market during this research. Therefore, I could only assume that this API key came from a developer and had ended up in the source code by mistake.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>The hardware and Android analysis revealed multiple vulnerabilities. An attacker with physical access is able to exfiltrate the WiFi password and can change the device settings via the weak password protected GoveeShell (UART shell). The Android APK revealed multiple API keys, one of them allowed to control foreign devices of an unknown person.</p>
+<p>All findings were sent to the Govee security team on 6th of June 2023. They thanked me for my work, encouraged me to share more in the future, and assured me that they would fix the vulnerabilities as soon as possible.</p>
+<h2 id="timeline">Timeline</h2>
+<ul>
+<li>06.06.2023: Sending vulnerabilities to Govee security team</li>
+<li>07.06.2023: Acknowledgement Govee and start of their investigation</li>
+<li>15.07.2023: Progress update by Govee. Planned update on 17th of July to fix most of the vulnerabilities</li>
+<li>07.09.2023: Asking Govee if they want to deactivate the API key before I publish this blog post</li>
+<li>08.09.2023: API key deactivated by Govee</li>
+</ul>
+<h2 id="references">References</h2>
+<ul>
+<li><a href="http://dangerousprototypes.com/docs/Bus_Pirate">Bus Pirate</a></li>
+<li><a href="http://www.grandideastudio.com/jtagulator/">JTAGulator</a></li>
+<li><a href="https://homes.luddy.indiana.edu/luyixing/papers/CCS_2022_pverifier_xing.pdf">P-Verifier: Understanding and Mitigating Security Risks in
+Cloud-based IoT Access Policies</a></li>
+<li><a href="https://eu.govee.com/">Govee Europe - Section: Who is Govee</a></li>
+<li><a href="https://eu.govee.com/products/govee-dreamview-p1-light-bars">Govee DreamView P1 Light Bars</a></li>
+</ul>
+
+    </div>
+</div>
+
+            </main>
+        </div>
+
+
+        <footer class="footer">
+    © 2023 TightropeMonkey, Built with
+    <a href="https://gohugo.io" class="footerLink">Hugo</a> and
+    <a href="https://github.com/LordMathis/hugo-theme-nightfall" class="footerLink">Nightfall</a> theme
+</footer>
+    </div>
+
+</body>
+
+</html>
