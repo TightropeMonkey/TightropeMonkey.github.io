@@ -13,7 +13,9 @@ Groovy Govee Account Takeover | TightropeMonkey
 
 
 <link rel="canonical" href="https://tightropemonkey.dev/posts/govee-part-1/" >
-<link href="/sass/main.min.4e3efe637d21e3743f006dbceaa8d8f10952bb4f4d19989c58c5afb0fc120a52.css" rel="stylesheet">
+<link href="/sass/main.min.7c57d7795628d7c025cc5db105e8a8d02017cfd7b77929b93c867586a4b49d65.css" rel="stylesheet">
+
+
 
 </head>
 
@@ -27,6 +29,8 @@ Groovy Govee Account Takeover | TightropeMonkey
                 <span class="terminal">me@tightropemonkey.dev ~ $</span>
             </a>
         </div>
+        <input class="side-menu" type="checkbox" id="side-menu">
+        <label class="hamb" for="side-menu"><span class="hamb-line"></span></label>
         <nav class="headerLinks">
             <ul>
                 
@@ -40,11 +44,23 @@ Groovy Govee Account Takeover | TightropeMonkey
     </div>
 </header>
 
+
         <div class="content">
             <main class="main">
                 
 <div class="postWrapper">
     <h1>Groovy Govee Account Takeover</h1>
+    
+    <section class="postMetadata">
+        <dl>
+            
+            
+            
+            
+            
+        </dl>
+    </section>
+    
     <div>
         <p>Recently, I got my hands on the Govee DreamView P1 Light Bars (model H6054).</p>
 <p><img src="images/govee_h6054.jpeg" alt="Govee Flow Pro (H6054)"></p>
@@ -108,7 +124,8 @@ Groovy Govee Account Takeover | TightropeMonkey
 <p>Obviously, I wanted to know how easy an attacker with an account in his hands is able to spy on a victim using the camera.</p>
 <p>After a short while I discovered the calibration function, which as the name suggests if for the initial setup and allows to calibrate the camera for the mounted monitor.</p>
 <p>Using the calibration function triggers the following request:</p>
-<pre tabindex="0"><code>GET /appco/v1/calibration/point?device=&lt;censored&gt;&amp;sku=H6054 HTTP/2
+<pre tabindex="0"><code>GET /appco/v1/calibration/point
+?device=&lt;censored&gt;&amp;sku=H6054 HTTP/2
 Host: app2.govee.com
 Cookie: [..]
 Authorization: Bearer ey&lt;censored&gt;
@@ -123,7 +140,9 @@ Authorization: Bearer ey&lt;censored&gt;
   &quot;data&quot;: {
     &quot;device&quot;: &quot;&lt;censored&gt;&quot;,
     &quot;sku&quot;: &quot;H6054&quot;,
-    &quot;imgUrl&quot;: &quot;https://d1f2504ijhdyjw.cloudfront.net/snapshot-img/&lt;censored&gt;-snap.jpg&quot;,
+    &quot;imgUrl&quot;: &quot;https://d1f2504ijhdyjw.
+    cloudfront.net/snapshot-img/
+    &lt;censored&gt;-snap.jpg&quot;,
     &quot;points&quot;: [
       { &quot;pointX&quot;: 160, &quot;pointY&quot;: 1066 },
       { &quot;pointX&quot;: 80, &quot;pointY&quot;: 595 },
@@ -176,9 +195,13 @@ Authorization: Bearer ey&lt;censored&gt;
 
 
         <footer class="footer">
-    © 2023 TightropeMonkey, Built with
-    <a href="https://gohugo.io" class="footerLink">Hugo</a> and
-    <a href="https://github.com/LordMathis/hugo-theme-nightfall" class="footerLink">Nightfall</a> theme
+    
+        <span>
+            © 2023 TightropeMonkey, Built with
+            <a href="https://gohugo.io" class="footerLink">Hugo</a> and
+            <a href="https://github.com/LordMathis/hugo-theme-nightfall" class="footerLink">Nightfall</a> theme
+        </span>
+    
 </footer>
     </div>
 
